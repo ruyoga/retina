@@ -1,5 +1,5 @@
 sweep_config_comprehensive = {
-    'method': 'bayes',  # Bayesian optimization
+    'method': 'bayes',
     'name': 'retinal-disease-comprehensive-sweep',
     'metric': {
         'name': 'val_f1_macro',
@@ -140,7 +140,7 @@ sweep_config_efficientnet = {
     },
     'parameters': {
         'model_name': {
-            'value': 'efficientnet_b1'  # Fixed
+            'value': 'efficientnet_b1'
         },
         'learning_rate': {
             'distribution': 'log_uniform_values',
@@ -148,7 +148,7 @@ sweep_config_efficientnet = {
             'max': 5e-4
         },
         'optimizer': {
-            'values': ['adam', 'adamw']  # Adam family works better for EfficientNet
+            'values': ['adam', 'adamw']
         },
         'weight_decay': {
             'distribution': 'log_uniform_values',
@@ -264,16 +264,6 @@ sweep_config_random = {
 
 
 def get_sweep_config(sweep_type='quick'):
-    """
-    Get sweep configuration by type
-
-    Args:
-        sweep_type: One of ['comprehensive', 'quick', 'resnet', 'efficientnet',
-                           'densenet', 'grid', 'random']
-
-    Returns:
-        Sweep configuration dictionary
-    """
     configs = {
         'comprehensive': sweep_config_comprehensive,
         'quick': sweep_config_quick,

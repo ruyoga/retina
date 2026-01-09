@@ -71,7 +71,13 @@ class SweepConfig:
         self.use_class_weights = config.get('use_class_weights', True)
         self.class_weights = None  # Will be computed from data
 
-        self.accelerator = 'mps' if torch.backends.mps.is_available() else 'cpu'
+        # Auto-detect best available accelerator: CUDA > MPS > CPU
+        if torch.cuda.is_available():
+            self.accelerator = 'cuda'
+        elif torch.backends.mps.is_available():
+            self.accelerator = 'mps'
+        else:
+            self.accelerator = 'cpu'
         self.devices = 1
 
         self.seed = 42
@@ -152,7 +158,7 @@ def train():
     print(f"Batch size: {config.batch_size}")
     print(f"Accumulate grad batches: {config.accumulate_grad_batches}")
     print(f"Effective batch size: {config.batch_size * config.accumulate_grad_batches}")
-    print(f"Image size: {config.img_height} × {config.img_width}")
+    print(f"Image size: {config.img_height} Ã— {config.img_width}")
     print(f"Dropout: {config.dropout_rate}")
     print(f"Weight decay: {config.weight_decay}")
     print(f"Scheduler: {config.scheduler}")

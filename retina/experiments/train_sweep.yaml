@@ -13,9 +13,9 @@ parameters:
   optimizer:
     values: ['sgd', 'adam', 'adamw']
   batch_size:
-    values: [2]
+    values: [16, 32, 64]
   img_height:
-    values: [356]
+    values: [512, 712]
   dropout_rate:
     distribution: uniform
     min: 0.0
@@ -28,3 +28,7 @@ parameters:
     values: ['plateau', 'cosine', 'step']
   max_epochs:
     value: 50
+early_terminate:
+  type: hyperband
+  min_iter: 5
+  s: 2

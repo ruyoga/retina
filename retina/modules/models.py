@@ -35,7 +35,13 @@ class RetinalDiseaseClassifier(pl.LightningModule):
             raise ValueError(f"Unknown model: {model_name}. Choose from: resnet50, efficientnet_b1, densenet121")
 
     def _build_resnet50(self, num_classes, pretrained, dropout_rate):
-        model = models.resnet50(pretrained=pretrained)
+
+        if pretrained:
+            weights = models.ResNet50_Weights.DEFAULT
+        else:
+            weights = None
+
+        model = models.resnet50(weights=weights)
 
         num_features = model.fc.in_features
 
@@ -73,7 +79,13 @@ class RetinalDiseaseClassifier(pl.LightningModule):
         return model
 
     def _build_densenet121(self, num_classes, pretrained, dropout_rate):
-        model = models.densenet121(pretrained=pretrained)
+
+        if pretrained:
+            weights = models.DenseNet121_Weights.DEFAULT
+        else:
+            weights = None
+
+        model = models.densenet121(weights=weights)
 
         num_features = model.classifier.in_features
 

@@ -99,12 +99,14 @@ class RetinalDataModule(pl.LightningDataModule):
             df=self.train_df,
             transform=self._get_train_transforms()
         )
+        use_pin_memory = self.config.accelerator in ['cuda', 'gpu']
+
         return DataLoader(
             train_dataset,
             batch_size=self.config.batch_size,
             shuffle=True,
             num_workers=self.config.num_workers,
-            pin_memory=True,
+            pin_memory=use_pin_memory,
             persistent_workers=True if self.config.num_workers > 0 else False
         )
 
@@ -113,12 +115,14 @@ class RetinalDataModule(pl.LightningDataModule):
             df=self.valid_df,
             transform=self._get_test_transforms()
         )
+        use_pin_memory = self.config.accelerator in ['cuda', 'gpu']
+
         return DataLoader(
             valid_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
             num_workers=self.config.num_workers,
-            pin_memory=True,
+            pin_memory=use_pin_memory,
             persistent_workers=True if self.config.num_workers > 0 else False
         )
 
@@ -127,11 +131,13 @@ class RetinalDataModule(pl.LightningDataModule):
             df=self.test_df,
             transform=self._get_test_transforms()
         )
+        use_pin_memory = self.config.accelerator in ['cuda', 'gpu']
+
         return DataLoader(
             test_dataset,
             batch_size=self.config.test_batch_size,
             shuffle=False,
             num_workers=self.config.num_workers,
-            pin_memory=True,
+            pin_memory=use_pin_memory,
             persistent_workers=True if self.config.num_workers > 0 else False
         )

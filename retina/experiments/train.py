@@ -27,10 +27,10 @@ def main():
 
     # Check MPS availability
     if torch.backends.mps.is_available():
-        print("✓ MPS (Metal Performance Shaders) device found")
+        print("âœ“ MPS (Metal Performance Shaders) device found")
         print(f"Using accelerator: {config.accelerator}")
     else:
-        print("✗ MPS device not found, using CPU")
+        print("âœ— MPS device not found, using CPU")
         config.accelerator = 'cpu'
 
     print("\n" + "=" * 50)

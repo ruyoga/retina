@@ -1,4 +1,5 @@
 from pathlib import Path
+import torch
 
 
 class Config:
@@ -14,7 +15,7 @@ class Config:
     valid_labels_path = data_path / 'Evaluation_Set' / 'Evaluation_Set' / 'RFMiD_Validation_Labels.csv'
     test_labels_path = data_path / 'Test_Set' / 'Test_Set' / 'RFMiD_Testing_Labels.csv'
 
-    num_classes = 46  # Number of disease classes
+    num_classes = 46
     img_height = 356
     img_width = 536
 
@@ -33,7 +34,13 @@ class Config:
 
     seed = 69
 
-    accelerator = 'mps'
+    # Auto-detect best available accelerator: CUDA > MPS > CPU
+    if torch.cuda.is_available():
+        accelerator = 'cuda'
+    elif torch.backends.mps.is_available():
+        accelerator = 'mps'
+    else:
+        accelerator = 'cpu'
     devices = 1
 
     checkpoint_dir = 'checkpoints'
@@ -43,4 +50,4 @@ class Config:
     wandb_run_name = None
     wandb_mode = 'online'
     wandb_save_dir = 'wandb_logs'
-    wandb_log_model = True  # Log model checkpoints to wandb
+    wandb_log_model = True

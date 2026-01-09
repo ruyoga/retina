@@ -1,0 +1,30 @@
+program: retina/experiments/train_sweep.py
+method: bayes
+metric:
+  name: val_f1_macro
+  goal: maximize
+parameters:
+  model_name:
+    values: ['resnet50', 'efficientnet_b1', 'densenet121']
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-3
+  optimizer:
+    values: ['sgd', 'adam', 'adamw']
+  batch_size:
+    values: [2]
+  img_height:
+    values: [356]
+  dropout_rate:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1e-6
+    max: 1e-3
+  scheduler:
+    values: ['plateau', 'cosine', 'step']
+  max_epochs:
+    value: 50

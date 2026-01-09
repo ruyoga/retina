@@ -142,6 +142,8 @@ def main():
     print("Testing Best Model")
     print("=" * 50)
 
+    torch.serialization.add_safe_globals([Config])
+
     trainer.test(
         model=model,
         datamodule=data_module,

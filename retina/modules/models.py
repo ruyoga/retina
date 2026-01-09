@@ -7,25 +7,17 @@ from torchmetrics.classification import MultilabelF1Score, MultilabelAUROC, Mult
 
 class RetinalDiseaseClassifier(pl.LightningModule):
     def __init__(self, config):
-        """
-        Args:
-            config: Configuration object with hyperparameters
-        """
         super().__init__()
         self.save_hyperparameters()
         self.config = config
 
-        # Get model architecture
         model_name = getattr(config, 'model_name', 'resnet50')
-        self.model_type = model_name
+        self.model_type = config.model_name
 
-        # Build model based on architecture
-        self.model = self._build_model(model_name)
+        self.model = self._build_model(config.model_name)
 
-        # Loss function for multi-label classification
-        self.criterion = nn.BCEWithLogitsLoss(reduction='sum')
+        self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
-        # Metrics for multi-label classification
         self._setup_metrics()
 
     def _build_model(self, model_name):
@@ -45,10 +37,8 @@ class RetinalDiseaseClassifier(pl.LightningModule):
     def _build_resnet50(self, num_classes, pretrained, dropout_rate):
         model = models.resnet50(pretrained=pretrained)
 
-        # Get input features of final layer
         num_features = model.fc.in_features
 
-        # Replace final layer with custom head
         if dropout_rate > 0:
             model.fc = nn.Sequential(
                 nn.Dropout(p=dropout_rate),
@@ -60,7 +50,6 @@ class RetinalDiseaseClassifier(pl.LightningModule):
         return model
 
     def _build_efficientnet_b1(self, num_classes, pretrained, dropout_rate):
-        # Use weights parameter instead of pretrained
         if pretrained:
             weights = models.EfficientNet_B1_Weights.DEFAULT
         else:
@@ -68,10 +57,8 @@ class RetinalDiseaseClassifier(pl.LightningModule):
 
         model = models.efficientnet_b1(weights=weights)
 
-        # Get input features of classifier
         num_features = model.classifier[1].in_features
 
-        # Replace classifier
         if dropout_rate > 0:
             model.classifier = nn.Sequential(
                 nn.Dropout(p=dropout_rate, inplace=True),
@@ -79,7 +66,7 @@ class RetinalDiseaseClassifier(pl.LightningModule):
             )
         else:
             model.classifier = nn.Sequential(
-                nn.Dropout(p=0.2, inplace=True),  # EfficientNet default
+                nn.Dropout(p=0.2, inplace=True),
                 nn.Linear(num_features, num_classes)
             )
 
@@ -88,10 +75,8 @@ class RetinalDiseaseClassifier(pl.LightningModule):
     def _build_densenet121(self, num_classes, pretrained, dropout_rate):
         model = models.densenet121(pretrained=pretrained)
 
-        # Get input features of classifier
         num_features = model.classifier.in_features
 
-        # Replace classifier
         if dropout_rate > 0:
             model.classifier = nn.Sequential(
                 nn.Dropout(p=dropout_rate),
@@ -105,23 +90,19 @@ class RetinalDiseaseClassifier(pl.LightningModule):
     def _setup_metrics(self):
         num_classes = self.config.num_classes
 
-        # F1 Score
         self.train_f1_macro = MultilabelF1Score(num_labels=num_classes, average='macro')
         self.train_f1_micro = MultilabelF1Score(num_labels=num_classes, average='micro')
         self.val_f1_macro = MultilabelF1Score(num_labels=num_classes, average='macro')
         self.val_f1_micro = MultilabelF1Score(num_labels=num_classes, average='micro')
 
-        # Additional metrics for comprehensive evaluation
         self.val_precision = MultilabelPrecision(num_labels=num_classes, average='macro')
         self.val_recall = MultilabelRecall(num_labels=num_classes, average='macro')
         self.val_auroc = MultilabelAUROC(num_labels=num_classes, average='macro')
 
     def forward(self, x):
-        """Forward pass"""
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        """Training step"""
         images, labels = batch
         logits = self(images)
         loss = self.criterion(logits, labels)
@@ -169,23 +150,19 @@ class RetinalDiseaseClassifier(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        """Test step"""
         images, labels = batch
         logits = self(images)
         loss = self.criterion(logits, labels)
 
-        # Get predictions
         probs = torch.sigmoid(logits)
         preds = (probs > 0.5).int()
 
-        # Update metrics (reuse validation metrics)
         self.val_f1_macro(preds, labels.int())
         self.val_f1_micro(preds, labels.int())
         self.val_precision(preds, labels.int())
         self.val_recall(preds, labels.int())
         self.val_auroc(probs, labels.int())
 
-        # Log with test prefix
         self.log('test_loss', loss, on_step=False, on_epoch=True)
         self.log('test_f1_macro', self.val_f1_macro, on_step=False, on_epoch=True)
         self.log('test_f1_micro', self.val_f1_micro, on_step=False, on_epoch=True)
@@ -221,7 +198,6 @@ class RetinalDiseaseClassifier(pl.LightningModule):
         else:
             raise ValueError(f"Unknown optimizer: {optimizer_name}")
 
-        # Scheduler configuration
         use_scheduler = getattr(self.config, 'use_scheduler', True)
 
         if not use_scheduler:
@@ -236,7 +212,6 @@ class RetinalDiseaseClassifier(pl.LightningModule):
                 factor=getattr(self.config, 'scheduler_factor', 0.1),
                 patience=getattr(self.config, 'scheduler_patience', 8),
                 cooldown=getattr(self.config, 'scheduler_cooldown', 10),
-                verbose=True
             )
             return {
                 'optimizer': optimizer,
@@ -288,15 +263,6 @@ class RetinalDiseaseClassifier(pl.LightningModule):
 
 
 def get_model_info(model_name='resnet50'):
-    """
-    Get information about a model architecture
-
-    Args:
-        model_name: Name of the model
-
-    Returns:
-        Dictionary with model information
-    """
     info = {
         'resnet50': {
             'name': 'ResNet50',

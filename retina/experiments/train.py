@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 import wandb
+import pandas as pd
 
 from retina.modules.config import Config
 from retina.modules.datamodules import RetinalDataModule
@@ -19,7 +20,48 @@ def set_seed(seed):
         torch.mps.manual_seed(seed)
 
 
+def compute_class_weights(labels_path, num_classes=46):
+    """
+    Compute class weights for handling imbalanced data
+
+    Args:
+        labels_path: Path to training labels CSV
+        num_classes: Number of disease classes (46 total)
+
+    Returns:
+        torch.Tensor: Positive class weights for BCEWithLogitsLoss
+    """
+    df = pd.read_csv(labels_path)
+
+    # Get disease columns (Disease_Risk + 45 diseases)
+    disease_cols = df.columns[1:num_classes + 1]
+
+    # Count positive samples per class
+    pos_counts = df[disease_cols].sum().values
+    total_samples = len(df)
+
+    # Compute weights: ratio of negative to positive samples
+    weights = []
+    for pos_count in pos_counts:
+        neg_count = total_samples - pos_count
+        if pos_count > 0:
+            weight = neg_count / pos_count
+        else:
+            weight = 1.0
+        weights.append(weight)
+
+    weights = torch.tensor(weights, dtype=torch.float32)
+
+    # Clip extreme weights to prevent training instability
+    weights = torch.clamp(weights, min=0.1, max=100.0)
+
+    return weights
+
+
 def main():
+    # Enable Tensor Cores for faster training on RTX GPUs
+    torch.set_float32_matmul_precision('medium')
+
     config = Config()
 
     set_seed(config.seed)
@@ -37,6 +79,17 @@ def main():
     print("Initializing Data Module")
     print("=" * 50)
     data_module = RetinalDataModule(config)
+
+    print("\n" + "=" * 50)
+    print("Computing Class Weights for Imbalanced Data")
+    print("=" * 50)
+    config.class_weights = compute_class_weights(
+        config.train_labels_path,
+        config.num_classes
+    )
+    print(f"✓ Class weights computed")
+    print(f"  Range: [{config.class_weights.min():.2f}, {config.class_weights.max():.2f}]")
+    print(f"  Mean: {config.class_weights.mean():.2f}")
 
     print("\n" + "=" * 50)
     print("Initializing Model")

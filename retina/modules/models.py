@@ -16,7 +16,16 @@ class RetinalDiseaseClassifier(pl.LightningModule):
 
         self.model = self._build_model(config.model_name)
 
-        self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        # Setup loss function with optional class weights for imbalanced data
+        pos_weight = getattr(config, 'class_weights', None)
+        if pos_weight is not None:
+            # Move weights to correct device
+            self.register_buffer('pos_weight', pos_weight)
+            self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight, reduction='mean')
+            print(f"✓ Using class weights for imbalanced data (range: {pos_weight.min():.2f}-{pos_weight.max():.2f})")
+        else:
+            self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
+            print("⚠ WARNING: Not using class weights - may struggle with imbalanced data")
 
         self._setup_metrics()
 
@@ -35,7 +44,7 @@ class RetinalDiseaseClassifier(pl.LightningModule):
             raise ValueError(f"Unknown model: {model_name}. Choose from: resnet50, efficientnet_b1, densenet121")
 
     def _build_resnet50(self, num_classes, pretrained, dropout_rate):
-
+        # Use new weights API instead of deprecated pretrained parameter
         if pretrained:
             weights = models.ResNet50_Weights.DEFAULT
         else:
@@ -79,7 +88,7 @@ class RetinalDiseaseClassifier(pl.LightningModule):
         return model
 
     def _build_densenet121(self, num_classes, pretrained, dropout_rate):
-
+        # Use new weights API instead of deprecated pretrained parameter
         if pretrained:
             weights = models.DenseNet121_Weights.DEFAULT
         else:

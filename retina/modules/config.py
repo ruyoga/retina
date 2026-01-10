@@ -17,12 +17,12 @@ class Config:
 
     num_classes = 46
     img_height = 356
-    img_width = 536
+    img_width = img_height * 1.5
 
-    batch_size = 2
-    test_batch_size = 2
+    batch_size = 16
+    test_batch_size = 16
     num_workers = 2
-    max_epochs = 1
+    max_epochs = 50
     learning_rate = 0.0001
     momentum = 0.9
     weight_decay = 0.0005

@@ -1,0 +1,22 @@
+.idea/
+
+# OS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# ML artifacts
+checkpoints/
+lightning_logs/
+sweep_checkpoints/
+wandb/
+wandb_logs/
+
+# Data (optional: usually should not be in git)
+retina/data/

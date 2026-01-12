@@ -1,53 +1,69 @@
-sweep_config_comprehensive = {
+sweep_config_resnet50_focal = {
     'method': 'bayes',
-    'name': 'retinal-disease-comprehensive-sweep',
+    'name': 'resnet50-focal-loss-sweep',
+    'command': ['${env}', 'python', '-m', 'retina.experiments.train_sweep', '${args}'],
     'metric': {
         'name': 'val_f1_macro',
         'goal': 'maximize'
     },
     'parameters': {
         'model_name': {
-            'values': ['resnet50', 'efficientnet_b1', 'densenet121']
+            'value': 'resnet50'
         },
 
-        'learning_rate': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-5,
-            'max': 1e-3
+        'max_epochs': {
+            'value': 25
         },
 
-        'optimizer': {
-            'values': ['sgd', 'adam', 'adamw']
+        'loss_type': {
+            'values': ['focal', 'adaptive_focal']
         },
 
-        'weight_decay': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-6,
-            'max': 1e-3
+        'focal_alpha': {
+            'distribution': 'uniform',
+            'min': 0.15,
+            'max': 0.40
+        },
+
+        'focal_gamma': {
+            'values': [1.0, 1.5, 2.0, 2.5, 3.0]
         },
 
         'batch_size': {
             'values': [8, 16, 32]
         },
 
+        'learning_rate': {
+            'distribution': 'log_uniform_values',
+            'min': 1e-5,
+            'max': 5e-4
+        },
+
+        'optimizer': {
+            'values': ['adam', 'adamw']
+        },
+
+        'weight_decay': {
+            'distribution': 'log_uniform_values',
+            'min': 1e-6,
+            'max': 1e-2
+        },
+
         'dropout_rate': {
             'distribution': 'uniform',
-            'min': 0.0,
+            'min': 0.1,
             'max': 0.5
         },
 
-        'img_height': {
-            'values': [512, 712, 1024]
-        },
-
         'scheduler': {
-            'values': ['plateau', 'cosine', 'step']
+            'values': ['plateau', 'cosine']
         },
 
-        'augmentation_strength': {
-            'values': ['light', 'medium', 'heavy']
+        'img_height': {
+            'values': [356]
         }
     },
+
     'early_terminate': {
         'type': 'hyperband',
         'min_iter': 5,
@@ -55,9 +71,34 @@ sweep_config_comprehensive = {
     }
 }
 
-sweep_config_quick = {
+sweep_config_resnet50_quick = {
+    'method': 'grid',
+    'name': 'resnet50-focal-quick-test',
+    'command': ['${env}', 'python', '-m', 'retina.experiments.train_sweep', '${args}'],
+    'metric': {
+        'name': 'val_f1_macro',
+        'goal': 'maximize'
+    },
+    'parameters': {
+        'model_name': {'value': 'resnet50'},
+        'max_epochs': {'value': 10},  # Quick test
+        'loss_type': {'values': ['focal', 'adaptive_focal']},
+        'focal_alpha': {'values': [0.20, 0.25, 0.30]},
+        'focal_gamma': {'values': [2.0, 3.0]},
+        'batch_size': {'values': [32, 64]},
+        'learning_rate': {'values': [1e-4, 5e-4]},
+        'optimizer': {'value': 'adamw'},
+        'dropout_rate': {'values': [0.2, 0.3]},
+        'scheduler': {'value': 'plateau'},
+        'img_height': {'value': 356}
+    }
+}
+
+
+sweep_config_all_models_focal = {
     'method': 'bayes',
-    'name': 'retinal-disease-quick-sweep',
+    'name': 'all-models-focal-loss-comprehensive',
+    'command': ['${env}', 'python', '-m', 'retina.experiments.train_sweep', '${args}'],
     'metric': {
         'name': 'val_f1_macro',
         'goal': 'maximize'
@@ -67,73 +108,58 @@ sweep_config_quick = {
             'values': ['resnet50', 'efficientnet_b1', 'densenet121']
         },
 
+        'max_epochs': {'value': 25},
+        'loss_type': {'values': ['focal', 'adaptive_focal']},
+
+        'focal_alpha': {
+            'distribution': 'uniform',
+            'min': 0.15,
+            'max': 0.40
+        },
+
+        'focal_gamma': {
+            'distribution': 'uniform',
+            'min': 1.0,
+            'max': 3.5
+        },
+
+        'batch_size': {'values': [16, 32, 64]},
+
         'learning_rate': {
-            'values': [1e-5, 5e-5, 1e-4, 5e-4, 1e-3]
+            'distribution': 'log_uniform_values',
+            'min': 5e-6,
+            'max': 1e-3
         },
 
-        'optimizer': {
-            'values': ['sgd', 'adam']
-        },
+        'optimizer': {'values': ['adam', 'adamw']},
 
-        'batch_size': {
-            'values': [8, 16]
+        'weight_decay': {
+            'distribution': 'log_uniform_values',
+            'min': 1e-6,
+            'max': 1e-2
         },
 
         'dropout_rate': {
-            'values': [0.0, 0.2, 0.5]
-        }
+            'distribution': 'uniform',
+            'min': 0.1,
+            'max': 0.5
+        },
+
+        'scheduler': {'values': ['plateau', 'cosine']},
+        'img_height': {'values': [356]}
     },
+
     'early_terminate': {
         'type': 'hyperband',
-        'min_iter': 3,
+        'min_iter': 5,
         's': 2
     }
 }
 
-
-sweep_config_resnet = {
+sweep_config_efficientnet_focal = {
     'method': 'bayes',
-    'name': 'retinal-disease-resnet50-sweep',
-    'metric': {
-        'name': 'val_f1_macro',
-        'goal': 'maximize'
-    },
-    'parameters': {
-        'model_name': {
-            'value': 'resnet50'  # Fixed
-        },
-        'learning_rate': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-5,
-            'max': 1e-3
-        },
-        'optimizer': {
-            'values': ['sgd', 'adam', 'adamw']
-        },
-        'weight_decay': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-6,
-            'max': 1e-3
-        },
-        'batch_size': {
-            'values': [8, 16, 32]
-        },
-        'dropout_rate': {
-            'distribution': 'uniform',
-            'min': 0.0,
-            'max': 0.5
-        },
-        'momentum': {
-            'distribution': 'uniform',
-            'min': 0.85,
-            'max': 0.95
-        }
-    }
-}
-
-sweep_config_efficientnet = {
-    'method': 'bayes',
-    'name': 'retinal-disease-efficientnet-sweep',
+    'name': 'efficientnet-b1-focal-loss-sweep',
+    'command': ['${env}', 'python', '-m', 'retina.experiments.train_sweep', '${args}'],
     'metric': {
         'name': 'val_f1_macro',
         'goal': 'maximize'
@@ -142,136 +168,154 @@ sweep_config_efficientnet = {
         'model_name': {
             'value': 'efficientnet_b1'
         },
+
+        'max_epochs': {
+            'value': 25
+        },
+
+        'loss_type': {
+            'values': ['focal', 'adaptive_focal']
+        },
+
+        'focal_alpha': {
+            'distribution': 'uniform',
+            'min': 0.20,
+            'max': 0.45
+        },
+
+        'focal_gamma': {
+            'values': [1.5, 2.0, 2.5, 3.0]
+        },
+
+        'batch_size': {
+            'values': [16, 32, 64]
+        },
+
+        'learning_rate': {
+            'distribution': 'log_uniform_values',
+            'min': 5e-6,
+            'max': 3e-4
+        },
+
+        'optimizer': {
+            'values': ['adam', 'adamw']
+        },
+
+        'weight_decay': {
+            'distribution': 'log_uniform_values',
+            'min': 1e-6,
+            'max': 1e-2
+        },
+
+        'dropout_rate': {
+            'distribution': 'uniform',
+            'min': 0.2,
+            'max': 0.5
+        },
+
+        'scheduler': {
+            'values': ['plateau', 'cosine']
+        },
+
+        'img_height': {
+            'values': [356]
+        }
+    },
+
+    'early_terminate': {
+        'type': 'hyperband',
+        'min_iter': 5,
+        's': 2
+    }
+}
+
+
+sweep_config_densenet_focal = {
+    'method': 'bayes',
+    'name': 'densenet121-focal-loss-sweep',
+    'command': ['${env}', 'python', '-m', 'retina.experiments.train_sweep', '${args}'],
+    'metric': {
+        'name': 'val_f1_macro',
+        'goal': 'maximize'
+    },
+    'parameters': {
+        'model_name': {
+            'value': 'densenet121'
+        },
+
+        'max_epochs': {
+            'value': 25
+        },
+
+        'loss_type': {
+            'values': ['focal', 'adaptive_focal']
+        },
+
+        'focal_alpha': {
+            'distribution': 'uniform',
+            'min': 0.15,
+            'max': 0.40
+        },
+
+        'focal_gamma': {
+            'values': [1.0, 1.5, 2.0, 2.5, 3.0]
+        },
+
+        'batch_size': {
+            'values': [16, 32, 64]
+        },
+
         'learning_rate': {
             'distribution': 'log_uniform_values',
             'min': 1e-5,
             'max': 5e-4
         },
-        'optimizer': {
-            'values': ['adam', 'adamw']
-        },
-        'weight_decay': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-6,
-            'max': 1e-3
-        },
-        'batch_size': {
-            'values': [8, 16, 32]
-        },
-        'dropout_rate': {
-            'distribution': 'uniform',
-            'min': 0.2,
-            'max': 0.5
-        }
-    }
-}
 
-sweep_config_densenet = {
-    'method': 'bayes',
-    'name': 'retinal-disease-densenet-sweep',
-    'metric': {
-        'name': 'val_f1_macro',
-        'goal': 'maximize'
-    },
-    'parameters': {
-        'model_name': {
-            'value': 'densenet121'  # Fixed
-        },
-        'learning_rate': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-5,
-            'max': 1e-3
-        },
         'optimizer': {
             'values': ['sgd', 'adam', 'adamw']
         },
+
         'weight_decay': {
             'distribution': 'log_uniform_values',
             'min': 1e-5,
-            'max': 1e-3
+            'max': 1e-2
         },
-        'batch_size': {
-            'values': [8, 16, 32]
-        },
+
         'dropout_rate': {
             'distribution': 'uniform',
             'min': 0.0,
             'max': 0.4
-        }
-    }
-}
+        },
 
-sweep_config_grid = {
-    'method': 'grid',
-    'name': 'retinal-disease-grid-search',
-    'metric': {
-        'name': 'val_f1_macro',
-        'goal': 'maximize'
+        'scheduler': {
+            'values': ['plateau', 'cosine', 'step']
+        },
+
+        'img_height': {
+            'values': [356]
+        }
     },
-    'parameters': {
-        'model_name': {
-            'values': ['resnet50', 'efficientnet_b1', 'densenet121']
-        },
-        'learning_rate': {
-            'values': [1e-4, 5e-4, 1e-3]
-        },
-        'optimizer': {
-            'values': ['sgd', 'adam']
-        },
-        'batch_size': {
-            'values': [8, 16]
-        },
-        'dropout_rate': {
-            'values': [0.0, 0.3]
-        }
-    }
-}
 
-sweep_config_random = {
-    'method': 'random',
-    'name': 'retinal-disease-random-search',
-    'metric': {
-        'name': 'val_f1_macro',
-        'goal': 'maximize'
-    },
-    'parameters': {
-        'model_name': {
-            'values': ['resnet50', 'efficientnet_b1', 'densenet121']
-        },
-        'learning_rate': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-5,
-            'max': 1e-3
-        },
-        'optimizer': {
-            'values': ['sgd', 'adam', 'adamw']
-        },
-        'weight_decay': {
-            'distribution': 'log_uniform_values',
-            'min': 1e-6,
-            'max': 1e-3
-        },
-        'batch_size': {
-            'values': [8, 16, 32]
-        },
-        'dropout_rate': {
-            'distribution': 'uniform',
-            'min': 0.0,
-            'max': 0.5
-        }
+    'early_terminate': {
+        'type': 'hyperband',
+        'min_iter': 5,
+        's': 2
     }
 }
 
 
-def get_sweep_config(sweep_type='quick'):
+def get_sweep_config(sweep_type='resnet50_focal'):
     configs = {
-        'comprehensive': sweep_config_comprehensive,
-        'quick': sweep_config_quick,
-        'resnet': sweep_config_resnet,
-        'efficientnet': sweep_config_efficientnet,
-        'densenet': sweep_config_densenet,
-        'grid': sweep_config_grid,
-        'random': sweep_config_random
+        'resnet50_focal': sweep_config_resnet50_focal,
+        'efficientnet_focal': sweep_config_efficientnet_focal,
+        'densenet_focal': sweep_config_densenet_focal,
+        'resnet50_quick': sweep_config_resnet50_quick,
+        'all_models': sweep_config_all_models_focal
     }
 
-    return configs.get(sweep_type, sweep_config_quick)
+    if sweep_type not in configs:
+        print(f"Unknown sweep type: {sweep_type}")
+        print(f"Available types: {list(configs.keys())}")
+        return sweep_config_resnet50_focal
+
+    return configs[sweep_type]

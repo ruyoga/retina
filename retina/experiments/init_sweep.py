@@ -23,7 +23,7 @@ def main():
         '3': 'densenet_focal',
         '4': 'resnet50_quick',
         '5': 'all_models',
-        '': 'resnet50_focal'  # default
+        '': 'resnet50_focal'
     }
 
     sweep_type = sweep_types.get(choice, 'resnet50_focal')

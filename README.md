@@ -1,7 +1,7 @@
 # Retina
 
 <p align="center">
-  <img src="assets/logo.png" alt="Retina Logo" width="400"/>
+  <img src="retina/assets/logo.png" alt="Retina Logo" width="400"/>
 </p>
 
 ## Overview

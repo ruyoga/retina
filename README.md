@@ -1,5 +1,3 @@
-# Retina
-
 <p align="center">
   <img src="retina/assets/logo.png" alt="Retina Logo" width="400"/>
 </p>

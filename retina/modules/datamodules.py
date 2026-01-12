@@ -75,19 +75,6 @@ class RetinalDataModule(pl.LightningDataModule):
         self.valid_df['full_file_paths'] = str(self.config.valid_image_path) + '/' + self.valid_df['filenames']
         self.test_df['full_file_paths'] = str(self.config.test_image_path) + '/' + self.test_df['filenames']
 
-        if self.task == 'binary':
-            print("\n" + "=" * 70)
-            print("BINARY CLASSIFICATION - CLASS DISTRIBUTION")
-            print("=" * 70)
-
-            train_pos = self.train_df['Disease_Risk'].sum()
-            train_total = len(self.train_df)
-            train_neg = train_total - train_pos
-
-            valid_pos = self.valid_df['Disease_Risk'].sum()
-            valid_total = len(self.valid_df)
-            valid_neg = valid_total - valid_pos
-
     def _get_file_list(self, path):
         files = []
         for f in os.listdir(path):
@@ -100,6 +87,7 @@ class RetinalDataModule(pl.LightningDataModule):
         ids = []
         valid_files = []
 
+        # This is for stupid windows dotfiles
         for f in file_list:
             try:
                 file_id = int(f.split('.')[0])

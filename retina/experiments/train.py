@@ -10,7 +10,6 @@ from retina.modules.config import Config
 from retina.modules.datamodules import RetinalDataModule
 from retina.modules.models import RetinalDiseaseClassifier
 
-
 def set_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -19,47 +18,7 @@ def set_seed(seed):
     if torch.backends.mps.is_available():
         torch.mps.manual_seed(seed)
 
-
-def compute_class_weights(labels_path, num_classes=46):
-    """
-    Compute class weights for handling imbalanced data
-
-    Args:
-        labels_path: Path to training labels CSV
-        num_classes: Number of disease classes (46 total)
-
-    Returns:
-        torch.Tensor: Positive class weights for BCEWithLogitsLoss
-    """
-    df = pd.read_csv(labels_path)
-
-    # Get disease columns (Disease_Risk + 45 diseases)
-    disease_cols = df.columns[1:num_classes + 1]
-
-    # Count positive samples per class
-    pos_counts = df[disease_cols].sum().values
-    total_samples = len(df)
-
-    # Compute weights: ratio of negative to positive samples
-    weights = []
-    for pos_count in pos_counts:
-        neg_count = total_samples - pos_count
-        if pos_count > 0:
-            weight = neg_count / pos_count
-        else:
-            weight = 1.0
-        weights.append(weight)
-
-    weights = torch.tensor(weights, dtype=torch.float32)
-
-    # Clip extreme weights to prevent training instability
-    weights = torch.clamp(weights, min=0.1, max=100.0)
-
-    return weights
-
-
 def main():
-    # Enable Tensor Cores for faster training on RTX GPUs
     torch.set_float32_matmul_precision('medium')
 
     config = Config()
@@ -67,64 +26,41 @@ def main():
     set_seed(config.seed)
     pl.seed_everything(config.seed, workers=True)
 
-    # Check MPS availability
-    if torch.backends.mps.is_available():
-        print("âœ“ MPS (Metal Performance Shaders) device found")
-        print(f"Using accelerator: {config.accelerator}")
+    if torch.cuda.is_available():
+        print(f"CUDA device found: {torch.cuda.get_device_name(0)}")
+        print(f"  Using accelerator: {config.accelerator}")
+    elif torch.backends.mps.is_available():
+        print("MPS (Metal Performance Shaders) device found")
+        print(f"  Using accelerator: {config.accelerator}")
     else:
-        print("âœ— MPS device not found, using CPU")
-        config.accelerator = 'cpu'
+        print("No GPU acceleration available, using CPU")
+        print(f"  Using accelerator: {config.accelerator}")
 
-    print("\n" + "=" * 50)
-    print("Initializing Data Module")
-    print("=" * 50)
     data_module = RetinalDataModule(config)
 
-    print("\n" + "=" * 50)
-    print("Computing Class Weights for Imbalanced Data")
-    print("=" * 50)
-    config.class_weights = compute_class_weights(
-        config.train_labels_path,
-        config.num_classes
-    )
-    print(f"✓ Class weights computed")
-    print(f"  Range: [{config.class_weights.min():.2f}, {config.class_weights.max():.2f}]")
-    print(f"  Mean: {config.class_weights.mean():.2f}")
-
-    print("\n" + "=" * 50)
-    print("Initializing Model")
-    print("=" * 50)
     model = RetinalDiseaseClassifier(config)
-    print(f"Model: ResNet50 with {config.num_classes} output classes")
-
-    print("\n" + "=" * 50)
-    print("Configuring Callbacks")
-    print("=" * 50)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=config.checkpoint_dir,
-        filename=f'{config.model_name}-{{epoch:02d}}-{{val_loss:.4f}}',
-        monitor='val_loss',
-        mode='min',
+        filename=f'{config.model_name}-{{epoch:02d}}-{{val_f1:.4f}}',
+        monitor='val_f1',
+        mode='max',
         save_top_k=3,
-        save_last=False,
+        save_last=True,
         verbose=True
     )
 
     early_stop_callback = EarlyStopping(
-        monitor='val_loss',
-        patience=15,
-        mode='min',
-        verbose=True
+        monitor='val_f1',
+        patience=10,
+        mode='max',
+        verbose=True,
+        min_delta=0.005
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     callbacks = [checkpoint_callback, early_stop_callback, lr_monitor]
-
-    print("\n" + "=" * 50)
-    print("Configuring Weights & Biases Logger")
-    print("=" * 50)
 
     logger = WandbLogger(
         project=config.wandb_project,
@@ -136,64 +72,39 @@ def main():
     )
 
     logger.experiment.config.update({
+        'task': 'binary_classification',
+        'loss_function': 'focal_loss',
+        'focal_alpha': config.focal_alpha,
+        'focal_gamma': config.focal_gamma,
         'batch_size': config.batch_size,
         'learning_rate': config.learning_rate,
         'max_epochs': config.max_epochs,
         'img_height': config.img_height,
         'img_width': config.img_width,
-        'num_classes': config.num_classes,
-        'optimizer': 'SGD',
-        'model': 'ResNet50',
-        'scheduler': 'ReduceLROnPlateau'
+        'optimizer': config.optimizer,
+        'model': config.model_name,
+        'scheduler': config.scheduler,
+        'accelerator': config.accelerator,
+        'dropout': config.dropout_rate,
     })
-
-    print(f"Weights & Biases Project: {config.wandb_project}")
-    print(f"Mode: {config.wandb_mode}")
-    if config.wandb_entity:
-        print(f"Entity: {config.wandb_entity}")
-
-    print("\n" + "=" * 50)
-    print("Initializing Trainer")
-    print("=" * 50)
 
     trainer = pl.Trainer(
         accelerator=config.accelerator,
         devices=config.devices,
-
         max_epochs=config.max_epochs,
-
         callbacks=callbacks,
         logger=logger,
-
         precision='32',
-
         log_every_n_steps=10,
         enable_progress_bar=True,
-
         deterministic=False,
-
-        gradient_clip_val=None,
-
         check_val_every_n_epoch=1,
     )
-
-    print(f"Accelerator: {config.accelerator}")
-    print(f"Max epochs: {config.max_epochs}")
-    print(f"Batch size: {config.batch_size}")
-    print(f"Learning rate: {config.learning_rate}")
-
-    print("\n" + "=" * 50)
-    print("Starting Training")
-    print("=" * 50)
 
     trainer.fit(
         model=model,
         datamodule=data_module
     )
-
-    print("\n" + "=" * 50)
-    print("Testing Best Model")
-    print("=" * 50)
 
     torch.serialization.add_safe_globals([Config])
 
@@ -203,13 +114,9 @@ def main():
         ckpt_path='best'
     )
 
-    print("\n" + "=" * 50)
     print("Training Complete!")
-    print("=" * 50)
     print(f"Best model saved at: {checkpoint_callback.best_model_path}")
-    print(f"Best validation loss: {checkpoint_callback.best_model_score:.4f}")
-    print(f"\nView training logs at: {logger.experiment.url}")
-    print(f"Or run: wandb sync {config.wandb_save_dir}")
+    print(f"Best validation F1: {checkpoint_callback.best_model_score}")
 
     wandb.finish()
 

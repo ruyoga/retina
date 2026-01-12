@@ -14,9 +14,6 @@ git clone https://github.com/ruyoga/retina.git
 cd retina
 
 # Add data to retina/retina/data
-
-# Install dependencies
-pip install -r requirements.txt
 ```
 
 ## Usage
